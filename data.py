@@ -76,9 +76,10 @@ class RSICDset(Dataset):
         self.image_list = self.list['names']
 
         self.transform = transform
-        self.B_buffer = torch.randn(len(self.label_list),hash_len)
+        self.B_buffer = torch.sign(torch.randn(len(self.label_list), hash_len))
+        # self.index_list = []
 
-    def __getitem__(self,index):
+    def __getitem__(self, index):
         file_name = self.image_list[index]
         image = Image.open('/media/2T/cc/RSICD/RSICD_images/'+file_name)
         if self.transform:
@@ -88,6 +89,7 @@ class RSICDset(Dataset):
         label = self.label_list[index]
         hash_code = self.B_buffer[index]
         result = {'image': image, 'txtvector': txtvector, 'label': label, 'hash_code':hash_code}
+        # self.index_list.append(index)
         return result
 
     def __len__(self):
@@ -95,6 +97,7 @@ class RSICDset(Dataset):
 
     def update_buffer(self, buffer):
         self.B_buffer = buffer
+
 
 
 if __name__ == '__main__':

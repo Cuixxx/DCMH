@@ -55,6 +55,22 @@ class DCMH(nn.Module):
         g = self.TxtNet(txt)
         return f, g
 
+def Update_hash(dataloader):
+
+    F_buffer = []
+    G_buffer = []
+    # with torch.no_grad():
+    for item in dataloader:
+        image = item['image'].cuda()
+        txt = item['txtvector'].float().cuda()
+        f, g = model(image, txt)
+        F_buffer.append(f)
+        G_buffer.append(g)
+    F_buffer = torch.cat(F_buffer,dim=0)
+    G_buffer = torch.cat(G_buffer, dim=0)
+    B_buffer = torch.sign(F_buffer+G_buffer)
+
+    return B_buffer.cpu()
 
 if __name__ == '__main__':
 
@@ -69,6 +85,8 @@ if __name__ == '__main__':
     kf = KFold(n_splits=10, shuffle=True, random_state=11)
     Epoch = 500
     hash_len = 64
+    gamma = 1e-5
+    eta = 1e-5
 
     # KFold validation
     for fold, (train_idx, val_idx) in enumerate(kf.split(train_set)):
@@ -81,8 +99,10 @@ if __name__ == '__main__':
         tensorboard = my_tensorboarx(log_dir='./tensorboard_data', file_name=model_name)
 
         Train_set, Val_set = Subset(train_set, train_idx), Subset(train_set, val_idx)
-        train_loader = DataLoader(Train_set, batch_size=128, shuffle=True, drop_last=True, num_workers=4)
-        val_loader = DataLoader(Val_set, batch_size=128, shuffle=False, drop_last=True, num_workers=4)
+        batch_size = 128
+        train_loader = DataLoader(Train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4)
+        hashloader = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
+        val_loader = DataLoader(Val_set, batch_size=batch_size, shuffle=False, drop_last=True, num_workers=4)
         fraction1, fraction2 = 1, 1
 
 
@@ -98,19 +118,21 @@ if __name__ == '__main__':
                     hash_code = item['hash_code'].cuda()
                     f, g = model(image, txt)
 
-                    if fraction1 > 0.65:
-                        loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,
+                    # if fraction1 > 0.65:
+                    loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,
                                                                            margin=1.5)
-                    else:
-                        loss1, ap_dist1, an_dist1 = cm_batch_hard_triplet_loss(labels=label, anchor=f, another=g,
-                                                                               margin=1.5)
-                    if fraction2 > 0.65:
-                        loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f,
+                    # else:
+                    #     loss1, ap_dist1, an_dist1 = cm_batch_hard_triplet_loss(labels=label, anchor=f, another=g,
+                    #                                                            margin=1.5)
+                    # if fraction2 > 0.65:
+                    loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f,
                                                                            margin=1.5)
-                    else:
-                        loss2, _, _ = cm_batch_hard_triplet_loss(labels=label, anchor=g, another=f, margin=1.5)
-
-                    t_loss = loss1+loss2
+                    # else:
+                    #     loss2, _, _ = cm_batch_hard_triplet_loss(labels=label, anchor=g, another=f, margin=1.5)
+                    loss_q = torch.sum(torch.pow(hash_code-f, 2)+torch.pow((hash_code-g),2))
+                    ones = torch.ones(batch_size, 1).cuda()
+                    balance = torch.sum(torch.pow(torch.mm(f.t(), ones), 2)+torch.pow(torch.mm(g.t(), ones), 2))
+                    t_loss = loss1+loss2+gamma*loss_q+eta*balance
                     train_loss += t_loss
                     optimizer.zero_grad()
                     t_loss.backward()
@@ -119,11 +141,14 @@ if __name__ == '__main__':
                     pbar.update(1)
                 pbar.close()
                 train_loss = train_loss / len(train_loader)
-                if i % 5 == 0:
-                    print(f[0])
+                # if i % 5 == 0:
+                #     print(f[0])
             model.eval()
+
             labels, preds = [], []
             with torch.no_grad():
+                buffer = Update_hash(hashloader)
+                train_set.update_buffer(buffer)
                 with tqdm(total=math.ceil(len(val_loader)), desc="validating") as pbar:
                     for item in val_loader:
                         image = item['image'].cuda()
