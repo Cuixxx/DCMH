@@ -9,6 +9,8 @@ import torchvision.transforms as transforms
 import torch
 ##ceshi
 #1123
+#new
+
 def data_processing():
     with open('/media/2T/cc/RSICD/dataset_rsicd.json') as f:
         load_dict = json.load(f)
