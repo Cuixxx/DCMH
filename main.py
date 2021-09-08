@@ -83,10 +83,10 @@ if __name__ == '__main__':
     test_set = RSICDset(train=False, transform=transform)
 
     kf = KFold(n_splits=10, shuffle=True, random_state=11)
-    Epoch = 500
+    Epoch = 100
     hash_len = 64
-    gamma = 1e-5
-    eta = 1e-5
+    gamma = 2e-5
+    eta = 2e-5
 
     # KFold validation
     for fold, (train_idx, val_idx) in enumerate(kf.split(train_set)):
@@ -147,44 +147,45 @@ if __name__ == '__main__':
 
             labels, preds = [], []
             with torch.no_grad():
-                buffer = Update_hash(hashloader)
-                train_set.update_buffer(buffer)
+
                 with tqdm(total=math.ceil(len(val_loader)), desc="validating") as pbar:
                     for item in val_loader:
                         image = item['image'].cuda()
                         txt = item['txtvector'].float().cuda()
                         label = item['label'].long().cuda()
-
+                        # hash_code = item['hash_code'].cuda()
                         f, g = model(image, txt)
-
-                        if fraction1 > 0.65:
-                            loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f,
+                        hf = torch.sign(f)
+                        hg = torch.sign(g)
+                        # if fraction1 > 0.65:
+                        loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f,
                                                                                              another=g,
                                                                                              margin=1.5)
-                        else:
-                            loss1, ap_dist2, an_dist2 = cm_batch_hard_triplet_loss(labels=label, anchor=f, another=g,
-                                                                                   margin=1.5)
-                        if fraction2 > 0.65:
-                            loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f,
+                        loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f,
                                                                                margin=1.5)
-                        else:
-                            loss2, _, _ = cm_batch_hard_triplet_loss(labels=label, anchor=g, another=f, margin=1.5)
+                        loss_q = torch.sum(torch.pow(hf - f, 2) + torch.pow((hg - g), 2))
+                        ones = torch.ones(batch_size, 1).cuda()
+                        balance = torch.sum(torch.pow(torch.mm(f.t(), ones), 2) + torch.pow(torch.mm(g.t(), ones), 2))
 
-
-                        v_loss = loss1 + loss2
+                        v_loss = loss1 + loss2 + gamma*loss_q + eta*balance
 
                         val_loss += v_loss
                         pbar.set_postfix({'loss': '{0:1.5f}'.format(v_loss)})
                         pbar.update(1)
                     pbar.close()
                     val_loss = val_loss / len(val_loader)
-                # acc, acc_cls, mean_iu, fwavacc = utils.label_accuracy_score(labels, preds, n_class=6)
-            if (i) % 5 == 0:
+
+                #update hash_code
+                buffer = Update_hash(hashloader)
+                train_set.update_buffer(buffer)
+
+            if (i) % 10 == 0:
                 print('saved!')
                 if not os.path.isdir('./models/{}'.format(model_name)):
                     os.mkdir('./models/{}'.format(model_name))
                 torch.save(model.state_dict(), './models/{}/{}.pth.tar'.format(model_name, i))
+                np.save('./models/{}/epoch{}_hashcode.npy'.format(model_name, i), buffer.numpy())
 
-            tensorboard.draw(train_loss=train_loss, ap_dist1= ap_dist1, an_dist1 = an_dist1,ap_dist2= ap_dist2, an_dist2 = an_dist2,val_loss=val_loss, epoch=i,fraction1=fraction1,fraction2=fraction2)
+            tensorboard.draw(train_loss=train_loss, ap_dist1=ap_dist1, an_dist1=an_dist1, ap_dist2=ap_dist2, an_dist2=an_dist2, val_loss=val_loss, epoch=i, fraction1=fraction1, fraction2=fraction2)
         tensorboard.close()
 
