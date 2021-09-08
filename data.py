@@ -7,6 +7,8 @@ from torch.utils.data import Dataset,DataLoader,random_split,Subset
 import PIL.Image as Image
 import torchvision.transforms as transforms
 import torch
+##ceshi
+#1123
 def data_processing():
     with open('/media/2T/cc/RSICD/dataset_rsicd.json') as f:
         load_dict = json.load(f)
