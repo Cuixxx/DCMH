@@ -37,7 +37,7 @@ if __name__ == '__main__':
         dataloader = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
         model = DCMH(64)
         model = model.cuda()
-        model.load_state_dict(torch.load('./models/09-08-16:46_DCMH_IR/90.pth.tar'))
+        model.load_state_dict(torch.load('./models/09-09-15:24_DCMH_IR/99.pth.tar'))
 
         img_vectors, txt_vectors = [],[]
         labels = []
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                 img_vectors.append(f)
                 txt_vectors.append(g)
                 labels.append(label)
-        img_vectors = torch.cat(img_vectors,dim=0)
+        img_vectors = torch.cat(img_vectors, dim=0)
         txt_vectors = torch.cat(txt_vectors, dim=0)
         labels = torch.cat(labels, dim=0)
         img_vectors = img_vectors.cpu().numpy()

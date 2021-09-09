@@ -118,21 +118,16 @@ if __name__ == '__main__':
                     hash_code = item['hash_code'].cuda()
                     f, g = model(image, txt)
 
-                    # if fraction1 > 0.65:
-                    loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,
-                                                                           margin=1.5)
-                    # else:
-                    #     loss1, ap_dist1, an_dist1 = cm_batch_hard_triplet_loss(labels=label, anchor=f, another=g,
-                    #                                                            margin=1.5)
-                    # if fraction2 > 0.65:
-                    loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f,
-                                                                           margin=1.5)
-                    # else:
-                    #     loss2, _, _ = cm_batch_hard_triplet_loss(labels=label, anchor=g, another=f, margin=1.5)
+
+                    loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.5)
+                    loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
+                    loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.5)[0]\
+                                 +batch_all_triplet_loss(labels=label, embedings=g, margin=0.5)[0]
+
                     loss_q = torch.sum(torch.pow(hash_code-f, 2)+torch.pow((hash_code-g),2))
                     ones = torch.ones(batch_size, 1).cuda()
                     balance = torch.sum(torch.pow(torch.mm(f.t(), ones), 2)+torch.pow(torch.mm(g.t(), ones), 2))
-                    t_loss = loss1+loss2+gamma*loss_q+eta*balance
+                    t_loss = loss1+loss2+gamma*loss_q+eta*balance+loss_intra
                     train_loss += t_loss
                     optimizer.zero_grad()
                     t_loss.backward()
@@ -155,14 +150,14 @@ if __name__ == '__main__':
                         hf = torch.sign(f)
                         hg = torch.sign(g)
                         # if fraction1 > 0.65:
-                        loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,margin=1.5)
-                        loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=1.5)
+                        loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,margin=0.5)
+                        loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
                         loss_q = torch.sum(torch.pow(hf - f, 2) + torch.pow((hg - g), 2))
                         ones = torch.ones(batch_size, 1).cuda()
                         balance = torch.sum(torch.pow(torch.mm(f.t(), ones), 2) + torch.pow(torch.mm(g.t(), ones), 2))
-
-                        v_loss = loss1 + loss2 + gamma*loss_q + eta*balance
-
+                        loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.5)[0]\
+                                     + batch_all_triplet_loss(labels=label, embedings=g, margin=0.5)[0]
+                        v_loss = loss1 + loss2 + gamma*loss_q + eta*balance+loss_intra
                         val_loss += v_loss
                         pbar.set_postfix({'loss': '{0:1.5f}'.format(v_loss)})
                         pbar.update(1)
@@ -173,7 +168,7 @@ if __name__ == '__main__':
                 buffer = Update_hash(hashloader)
                 train_set.update_buffer(buffer)
 
-            if (i) % 10 == 0:
+            if (i+1) % 10 == 0:
                 print('saved!')
                 if not os.path.isdir('./models/{}'.format(model_name)):
                     os.mkdir('./models/{}'.format(model_name))

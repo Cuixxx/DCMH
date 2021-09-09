@@ -9,9 +9,8 @@ def generate_hashcode():
     hash_len = 64
     model = DCMH(hash_len)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-08-16:46_DCMH_IR/90.pth.tar'))
+    model.load_state_dict(torch.load('./models/09-09-15:24_DCMH_IR/99.pth.tar'))
     transform = transforms.Compose([
-        transforms.ColorJitter(0.3, 0.3, 0.2),
         transforms.ToTensor(),
         transforms.Normalize([0.39912226, 0.40995254, 0.37104891], [0.21165691, 0.19001945, 0.18833912])])
 
@@ -96,7 +95,7 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     plt.savefig('./fig1.png',dpi=300)
     plt.show()
     #
-    index = [100, 500, 1000, 2000, 5000]
+    index = [100, 500, 1000, 2000]
     index = [i - 1 for i in index]
     print('precision at k:', precision_at_k[index])
     print('precision within Hamming radius 2:', np.mean(precision_radius))
@@ -105,6 +104,7 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     print('Total query time:', time.time() - total_time_start)
 
 if __name__ == '__main__':
+    # generate_hashcode()
     train_set = np.load('trainset.npy', allow_pickle=True).item()
     train_label = train_set['labels']
     test_set = np.load('testset.npy', allow_pickle=True).item()
@@ -112,4 +112,5 @@ if __name__ == '__main__':
     train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
     test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
     test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
-    evaluate(train_hashcode, train_label, test_img_hashcode, test_label)
+    # evaluate(train_hashcode, train_label, test_txt_hashcode, test_label)
+    evaluate(test_img_hashcode, test_label, test_txt_hashcode, test_label)

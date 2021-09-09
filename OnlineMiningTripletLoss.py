@@ -3,6 +3,20 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 def pairwise_distance(embeddings,squared=False):
+    embeddings = F.normalize(embeddings, p=2, dim=1)
+    dot_product = torch.matmul(embeddings, embeddings.t())
+    # square_norm = torch.diag(dot_product)
+    # distances = square_norm.unsqueeze(0) - 2.0 * dot_product + square_norm.unsqueeze(1)
+    distances = 2.0 * (1-dot_product)
+    distances[distances < 0] = 0
+    if not squared:
+        mask = distances.eq(0).float()
+        distances = distances + mask * 1e-16
+        distances = (1.0-mask)*torch.sqrt(distances)
+
+    return distances
+"""
+def pairwise_distance(embeddings,squared=False):
     dot_product = torch.matmul(embeddings, embeddings.t())
     square_norm = torch.diag(dot_product)
     distances = square_norm.unsqueeze(0) - 2.0 * dot_product + square_norm.unsqueeze(1)
@@ -14,6 +28,8 @@ def pairwise_distance(embeddings,squared=False):
         distances = (1.0-mask)*torch.sqrt(distances)
 
     return distances
+
+"""
 
 def cm_pairwise_distance(embedding0,embedding1,squared=False):
     embedding0 = F.normalize(embedding0, p=2, dim=1)
@@ -31,7 +47,7 @@ def cm_pairwise_distance(embedding0,embedding1,squared=False):
 
 
 def get_triplet_mask(labels):
-    indices_equal = torch.eye(labels.size(0)).bool()
+    indices_equal = torch.eye(labels.size(0)).type(torch.uint8).cuda()
     indices_not_equal = ~indices_equal
     i_not_equal_j = indices_not_equal.unsqueeze(2)
     i_not_equal_k = indices_not_equal.unsqueeze(1)
@@ -126,7 +142,7 @@ def batch_all_triplet_loss(labels, embedings, margin, squared=False):
     num_valid_triplets = mask.sum()
 
     fraction_positive_triplets = num_positive_triplets / (num_valid_triplets.float() + 1e-16)
-    triplet_loss = triplet_loss.sum()/(num_positive_triplets.float() + 1e-16)
+    triplet_loss = triplet_loss.sum()/(float(num_positive_triplets) + 1e-16)
 
     return triplet_loss, fraction_positive_triplets
 

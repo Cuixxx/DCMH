@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from torchvision.models i
+# from torchvision.model
 class TxtNet(nn.Module):
     def __init__(self,len):
         super(TxtNet, self).__init__()
@@ -17,6 +17,6 @@ class TxtNet(nn.Module):
         h = self.fc3(h)
         return h
 
-class TxtNet_lstm(nn.Module):
-    def __init__(self):
-        super(TxtNet_lstm, self).__init__()
+# class TxtNet_lstm(nn.Module):
+#     def __init__(self):
+#         super(TxtNet_lstm, self).__init__()
