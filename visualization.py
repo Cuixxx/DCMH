@@ -22,7 +22,7 @@ def visualization(embeddings1,embeddings2, label):
     plt.axis('off')
     plt.colorbar()
     plt.show()
-    plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='v', c=label, cmap='tab20c')
+    plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='o', c=label, cmap='tab20c')
     plt.colorbar()
     plt.axis('off')
     plt.show()
@@ -32,23 +32,12 @@ if __name__ == '__main__':
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.39912226, 0.40995254, 0.37104891], [0.21165691, 0.19001945, 0.18833912])])
-
-        RSICD = RSICDset(transform)
-        if os.path.isfile('train_list.npy'):
-            test_list = np.load('./test_list.npy')
-            train_list = np.load('./train_list.npy')
-            train_set = Subset(RSICD, train_list)
-            test_set = Subset(RSICD, test_list)
-
-        else:
-            train_set, test_set = random_split(RSICD, [8000, 2921])
-            np.save('./train_list.npy', np.array(train_set.indices))
-            np.save('./test_list.npy', np.array(test_set.indices))
+        train_set = RSICDset(train=True, transform=transform)
 
         dataloader = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
         model = DCMH(64)
         model = model.cuda()
-        model.load_state_dict(torch.load('./models/09-06-16:37_fuxi_IR/250.pth.tar'))
+        model.load_state_dict(torch.load('./models/09-08-16:46_DCMH_IR/90.pth.tar'))
 
         img_vectors, txt_vectors = [],[]
         labels = []
@@ -76,5 +65,5 @@ if __name__ == '__main__':
         img_vectors = np.load('img_embeddings.npy')
         txt_vectors = np.load('txt_embeddings.npy')
         labels = np.load('labels.npy')
-        visualization(img_vectors,txt_vectors, labels)
+        visualization(img_vectors, txt_vectors, labels)
         # visualization(txt_vectors, labels)

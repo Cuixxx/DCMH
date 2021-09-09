@@ -144,10 +144,7 @@ if __name__ == '__main__':
                 # if i % 5 == 0:
                 #     print(f[0])
             model.eval()
-
-            labels, preds = [], []
             with torch.no_grad():
-
                 with tqdm(total=math.ceil(len(val_loader)), desc="validating") as pbar:
                     for item in val_loader:
                         image = item['image'].cuda()
@@ -158,11 +155,8 @@ if __name__ == '__main__':
                         hf = torch.sign(f)
                         hg = torch.sign(g)
                         # if fraction1 > 0.65:
-                        loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f,
-                                                                                             another=g,
-                                                                                             margin=1.5)
-                        loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f,
-                                                                               margin=1.5)
+                        loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,margin=1.5)
+                        loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=1.5)
                         loss_q = torch.sum(torch.pow(hf - f, 2) + torch.pow((hg - g), 2))
                         ones = torch.ones(batch_size, 1).cuda()
                         balance = torch.sum(torch.pow(torch.mm(f.t(), ones), 2) + torch.pow(torch.mm(g.t(), ones), 2))
@@ -184,7 +178,7 @@ if __name__ == '__main__':
                 if not os.path.isdir('./models/{}'.format(model_name)):
                     os.mkdir('./models/{}'.format(model_name))
                 torch.save(model.state_dict(), './models/{}/{}.pth.tar'.format(model_name, i))
-                np.save('./models/{}/epoch{}_hashcode.npy'.format(model_name, i), buffer.numpy())
+                # np.save('./models/{}/epoch{}_hashcode.npy'.format(model_name, i), buffer.numpy())
 
             tensorboard.draw(train_loss=train_loss, ap_dist1=ap_dist1, an_dist1=an_dist1, ap_dist2=ap_dist2, an_dist2=an_dist2, val_loss=val_loss, epoch=i, fraction1=fraction1, fraction2=fraction2)
         tensorboard.close()
