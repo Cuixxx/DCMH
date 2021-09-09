@@ -67,7 +67,7 @@ def cm_get_triplet_mask(labels):
     return valid_labels
 
 def get_anchor_positive_triplet_mask(labels):
-    indices_equal = torch.eye(labels.size(0)).bool()
+    indices_equal = torch.eye(labels.size(0)).type(torch.uint8).cuda()
     indices_not_equal = ~indices_equal
 
     labels_equal = labels.unsqueeze(0) == labels.unsqueeze(1)
@@ -87,12 +87,12 @@ def get_anchor_negative_triplet_mask(labels):
 def cm_get_anchor_negative_triplet_mask(labels):
     return ~(labels.unsqueeze(0) == labels.unsqueeze(1))
 
-def batch_hard_triplet_loss(labels, embeddings, margin, squared=False, device='cpu'):
+def batch_hard_triplet_loss(labels, embeddings, margin, squared=False):
     pairwis_dist = pairwise_distance(embeddings,squared=squared)
-    mask_anchor_positive = get_anchor_positive_triplet_mask(labels,device)
+    mask_anchor_positive = get_anchor_positive_triplet_mask(labels).float()
     anchor_positive_dist = mask_anchor_positive*pairwis_dist
     hardest_positve_dist,_ = anchor_positive_dist.max(dim=1, keepdim=True)
-    mask_anchor_negative = get_anchor_negative_triplet_mask(labels)
+    mask_anchor_negative = get_anchor_negative_triplet_mask(labels).float()
     max_anchor_negative_dist,_ = pairwis_dist.max(dim=1, keepdim=True)
     anchor_negative_dist = (1-mask_anchor_negative)*max_anchor_negative_dist+pairwis_dist
     hardest_negative_dist,_ = anchor_negative_dist.min(dim=1, keepdim=True)

@@ -118,11 +118,18 @@ if __name__ == '__main__':
                     hash_code = item['hash_code'].cuda()
                     f, g = model(image, txt)
 
+                    if i<10:
+                        loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.5)
+                        loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
+                        loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.5)[0] \
+                                     + batch_all_triplet_loss(labels=label, embedings=g, margin=0.5)[0]
+                    else:
+                        loss1, ap_dist1, an_dist1 = cm_batch_hard_triplet_loss(labels=label, anchor=f, another=g, margin=0.5)
+                        loss2, _, _ = cm_batch_hard_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
+                        loss_intra = batch_hard_triplet_loss(labels=label, embeddings=f, margin=0.5) \
+                                     + batch_hard_triplet_loss(labels=label, embeddings=g, margin=0.5)
 
-                    loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.5)
-                    loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
-                    loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.5)[0]\
-                                 +batch_all_triplet_loss(labels=label, embedings=g, margin=0.5)[0]
+
 
                     loss_q = torch.sum(torch.pow(hash_code-f, 2)+torch.pow((hash_code-g),2))
                     ones = torch.ones(batch_size, 1).cuda()
@@ -150,13 +157,22 @@ if __name__ == '__main__':
                         hf = torch.sign(f)
                         hg = torch.sign(g)
                         # if fraction1 > 0.65:
-                        loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,margin=0.5)
-                        loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
+                        if i < 10:
+                            loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g,margin=0.5)
+                            loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
+                            loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.5)[0] \
+                                     + batch_all_triplet_loss(labels=label, embedings=g, margin=0.5)[0]
+                        else:
+                            loss1, ap_dist2, an_dist2 = cm_batch_hard_triplet_loss(labels=label, anchor=f, another=g,
+                                                                                     margin=0.5)
+                            loss2, _, _ = cm_batch_hard_triplet_loss(labels=label, anchor=g, another=f, margin=0.5)
+                            loss_intra = batch_hard_triplet_loss(labels=label, embeddings=f, margin=0.5) \
+                                         + batch_hard_triplet_loss(labels=label, embeddings=g, margin=0.5)
+
                         loss_q = torch.sum(torch.pow(hf - f, 2) + torch.pow((hg - g), 2))
                         ones = torch.ones(batch_size, 1).cuda()
                         balance = torch.sum(torch.pow(torch.mm(f.t(), ones), 2) + torch.pow(torch.mm(g.t(), ones), 2))
-                        loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.5)[0]\
-                                     + batch_all_triplet_loss(labels=label, embedings=g, margin=0.5)[0]
+
                         v_loss = loss1 + loss2 + gamma*loss_q + eta*balance+loss_intra
                         val_loss += v_loss
                         pbar.set_postfix({'loss': '{0:1.5f}'.format(v_loss)})

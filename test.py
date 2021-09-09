@@ -9,7 +9,8 @@ def generate_hashcode():
     hash_len = 64
     model = DCMH(hash_len)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-09-15:24_DCMH_IR/99.pth.tar'))
+    model.load_state_dict(torch.load('./models/09-09-20:31_DCMH_IR/99.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
+
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize([0.39912226, 0.40995254, 0.37104891], [0.21165691, 0.19001945, 0.18833912])])
@@ -104,7 +105,7 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     print('Total query time:', time.time() - total_time_start)
 
 if __name__ == '__main__':
-    # generate_hashcode()
+    generate_hashcode()
     train_set = np.load('trainset.npy', allow_pickle=True).item()
     train_label = train_set['labels']
     test_set = np.load('testset.npy', allow_pickle=True).item()
