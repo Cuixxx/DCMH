@@ -9,7 +9,7 @@ def generate_hashcode():
     hash_len = 64
     model = DCMH(hash_len)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-09-20:31_DCMH_IR/99.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
+    model.load_state_dict(torch.load('./models/09-10-10:56_DCMH_IR/99.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
 
     transform = transforms.Compose([
         transforms.ToTensor(),
