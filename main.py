@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import math
 from ImgModule import ImgNet
-from TxtModule import TxtNet
+from TxtModule import TxtNet,TxtNet_GRU
 import torch.nn as nn
 
 class my_tensorboarx(object):
@@ -46,10 +46,12 @@ class my_tensorboarx(object):
         self.writer.close()
 
 class DCMH(nn.Module):
-    def __init__(self,len):
+    def __init__(self,len,batch_szie):
         super(DCMH, self).__init__()
         self.ImageNet = ImgNet(len)
-        self.TxtNet = TxtNet(len)
+        # self.TxtNet = TxtNet(len)
+        self.weight = np.load('EmbeddingWeight.npy')
+        self.TxtNet = TxtNet_GRU(torch.from_numpy(self.weight),batch_szie=batch_szie,len=len)
     def forward(self, img,txt):
         f = self.ImageNet(img)
         g = self.TxtNet(txt)

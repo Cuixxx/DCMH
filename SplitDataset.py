@@ -5,7 +5,7 @@ import random
 if __name__ == '__main__':
 
     files = np.load('files.npy')
-    txtvectors = np.load('txtvectors.npy',allow_pickle=True)
+    txtvectors = np.load('txtvectors.npy', allow_pickle=True)
     label_list = np.load('label_list.npy')
     index = list(range(len(files)))
     random.shuffle(index)

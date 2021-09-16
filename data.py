@@ -8,7 +8,7 @@ import PIL.Image as Image
 import torchvision.transforms as transforms
 import torch
 import torch.nn.utils.rnn as rnn
-
+import TxtModule
 
 def data_processing():
     with open('/media/2T/cc/RSICD/dataset_rsicd.json') as f:
@@ -135,14 +135,17 @@ def collate_fn(data):
     return img, txtvector, torch.tensor(label, dtype=torch.float32), hash_code, data_length
 
 if __name__ == '__main__':
+    weight = np.load('EmbeddingWeight.npy')
+    model = TxtModule.TxtNet_GRU(weight=torch.from_numpy(weight), batch_szie=5)
     transform = transforms.ToTensor()
-    dataset = CrossModalDataset(train=True,transform=transform)
-    dataloader = DataLoader(dataset=dataset,batch_size=5,shuffle=True,num_workers=10,collate_fn=collate_fn)
+    dataset = CrossModalDataset(train=True, transform=transform)
+    dataloader = DataLoader(dataset=dataset, batch_size=5, shuffle=True, num_workers=10, collate_fn=collate_fn)
     for item in dataloader:
         image = item[0]
         vector = item[1]
         label = item[2]
         hash_code = item[3]
         data_length = item[4]
+        model(vector,data_length)
         print(data_length)
     # data_processing()
