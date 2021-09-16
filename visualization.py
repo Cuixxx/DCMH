@@ -37,7 +37,7 @@ if __name__ == '__main__':
         dataloader = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
         model = DCMH(64)
         model = model.cuda()
-        model.load_state_dict(torch.load('./models/09-10-10:56_DCMH_IR/99.pth.tar'))
+        model.load_state_dict(torch.load('./models/09-10-14:17_DCMH_IR/99.pth.tar'))
 
         img_vectors, txt_vectors = [],[]
         labels = []

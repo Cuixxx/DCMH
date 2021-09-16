@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch
 # from torchvision.model
+import torch.nn.utils.rnn as rnn
+
 class TxtNet(nn.Module):
     def __init__(self,len):
         super(TxtNet, self).__init__()
@@ -17,6 +19,19 @@ class TxtNet(nn.Module):
         h = self.fc3(h)
         return h
 
-# class TxtNet_lstm(nn.Module):
-#     def __init__(self):
-#         super(TxtNet_lstm, self).__init__()
+class TxtNet_lstm(nn.Module):
+    def __init__(self,weight):
+        super(TxtNet_lstm, self).__init__()
+        self.embedding = nn.Embedding.from_pretrained(weight,freeze=False)
+        self.embedding_dropout = nn.Dropout(0.2)
+        self.GRU = nn.GRU(300, 256, 3, batch_first=True,bidirectional=True)
+        self.Linear = nn.Linear(256, 64)
+
+
+
+
+    def forward(self,sentence,sentence_length):
+        embeds = self.embedding(sentence.long())
+        embeds = rnn.pack_padded_sequence(embeds,sentence_length,batch_first=True)
+        h0 = torch.randn((3*2,len(sentence),256))
+        lstm_out,_ = self.GRU(embeds,h0)

@@ -9,7 +9,7 @@ def generate_hashcode():
     hash_len = 64
     model = DCMH(hash_len)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-10-10:56_DCMH_IR/99.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
+    model.load_state_dict(torch.load('./models/09-10-14:17_DCMH_IR/99.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -105,7 +105,7 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     print('Total query time:', time.time() - total_time_start)
 
 if __name__ == '__main__':
-    generate_hashcode()
+    # generate_hashcode()
     train_set = np.load('trainset.npy', allow_pickle=True).item()
     train_label = train_set['labels']
     test_set = np.load('testset.npy', allow_pickle=True).item()
@@ -113,5 +113,5 @@ if __name__ == '__main__':
     train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
     test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
     test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
-    # evaluate(train_hashcode, train_label, test_txt_hashcode, test_label)
+    # evaluate(train_hashcode, train_label, test_img_hashcode, test_label)
     evaluate(test_img_hashcode, test_label, test_txt_hashcode, test_label)

@@ -118,7 +118,7 @@ if __name__ == '__main__':
                     hash_code = item['hash_code'].cuda()
                     f, g = model(image, txt)
 
-                    if i<10:
+                    if i<5:
                         loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.2)
                         loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.2)
                         loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.2)[0] \
@@ -157,7 +157,7 @@ if __name__ == '__main__':
                         hf = torch.sign(f)
                         hg = torch.sign(g)
                         # if fraction1 > 0.65:
-                        if i < 10:
+                        if i < 5:
                             loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.2)
                             loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.2)
                             loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.2)[0] \
