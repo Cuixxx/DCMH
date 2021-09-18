@@ -23,17 +23,16 @@ class TxtNet_GRU(nn.Module):
     def __init__(self,weight,batch_szie,len):
         super(TxtNet_GRU, self).__init__()
         self.embedding = nn.Embedding.from_pretrained(weight,freeze=False)
-        self.embedding_dropout = nn.Dropout(0.2)
-        self.GRU = nn.GRU(300, 256, 3, batch_first=True,bidirectional=True)
-        self.Linear = nn.Linear(512, len)
-        self.h0 = torch.randn((3 * 2, batch_szie, 256))
+        self.GRU = nn.GRU(300, 1024, 2, batch_first=True, bidirectional=True, dropout=0.2)
+        self.Linear = nn.Linear(1024, len)
+        self.h0 = torch.randn((2 * 2, batch_szie, 1024)).cuda()
     def forward(self,sentence,sentence_length):
-        embeds = self.embedding(sentence)
+        embeds = self.embedding(sentence.long())
         embeds = embeds.type(torch.float32)
         embeds = rnn.pack_padded_sequence(embeds, sentence_length, batch_first=True)
         GRU_out, _ = self.GRU(embeds, self.h0)
         GRU_out, len = rnn.pad_packed_sequence(GRU_out, batch_first=True)
-        features = [item[len[i]-1].unsqueeze(0) for i, item in enumerate(GRU_out)]
+        features = [((item[len[i]-1][:1024]+item[len[i]-1][1024:])/2.0).unsqueeze(0) for i, item in enumerate(GRU_out)]
         features = torch.cat(features, dim=0)
         out = self.Linear(features)
         return out

@@ -113,6 +113,8 @@ class CrossModalDataset(Dataset):
             image = self.transform(image)
 
         txtvector = self.txtvectors[index][random.randint(0, 4)]
+        while len(txtvector)<=0:
+            txtvector = self.txtvectors[index][random.randint(0, 4)]
         label = self.label_list[index]
         hash_code = self.B_buffer[index]
 
@@ -125,14 +127,19 @@ class CrossModalDataset(Dataset):
         self.B_buffer = buffer
 
 def collate_fn(data):
+    length = [len(i[1]) for i in data]
+    sequence = sorted(range(len(length)), key=lambda k: length[k], reverse=True)
     data.sort(key=lambda x: len(x[1]), reverse=True)
     data_length = [len(sq[1]) for sq in data]
-    img = [i[0] for i in data]
+    img = [i[0].unsqueeze(0) for i in data]
+    img = torch.cat(img,dim=0)
     x = [torch.tensor(i[1]) for i in data]
     label = [i[2] for i in data]
-    hash_code = [i[3] for i in data]
+    hash_code = [i[3].unsqueeze(0) for i in data]
+    hash_code = torch.cat(hash_code,dim=0)
+
     txtvector = rnn.pad_sequence(x, batch_first=True,padding_value=0)
-    return img, txtvector, torch.tensor(label, dtype=torch.float32), hash_code, data_length
+    return img, txtvector, torch.tensor(label, dtype=torch.float32), hash_code, data_length, sequence
 
 if __name__ == '__main__':
     weight = np.load('EmbeddingWeight.npy')

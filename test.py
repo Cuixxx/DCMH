@@ -7,27 +7,31 @@ import matplotlib.pyplot as plt
 
 def generate_hashcode():
     hash_len = 64
-    model = DCMH(hash_len)
+    batch_size =100
+    model = DCMH(hash_len,batch_size)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-10-14:17_DCMH_IR/99.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
+    model.load_state_dict(torch.load('./models/09-18-15:17_DCMH_IR/159.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
 
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize([0.39912226, 0.40995254, 0.37104891], [0.21165691, 0.19001945, 0.18833912])])
-
-    train_set = RSICDset(train=True, transform=transform)
-    test_set = RSICDset(train=False, transform=transform)
-    train_loder = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
-    test_loader = DataLoader(test_set, batch_size=100, shuffle=False, num_workers=5)
+    train_set = CrossModalDataset(train=True, transform=transform)
+    test_set = CrossModalDataset(train=False, transform=transform)
+    train_loder = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=5, collate_fn=collate_fn)
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=5, collate_fn=collate_fn,drop_last=True)
     model.eval()
 
     with torch.no_grad():
         f_buffer = []
         g_buffer = []
+        label1 = []
         for item in train_loder:
-            image = item['image'].cuda()
-            txt = item['txtvector'].float().cuda()
-            f, g = model(image, txt)
+            image = item[0].cuda()
+            txt = item[1].float().cuda()
+            label = item[2].long().cpu().numpy()
+            label1.extend(label)
+            length = item[4]
+            f, g = model(image, txt,length)
             f_buffer.append(f)
             g_buffer.append(g)
         f_buffer = torch.cat(f_buffer, dim=0)
@@ -36,10 +40,14 @@ def generate_hashcode():
 
         f_buffer = []
         g_buffer = []
+        label2 = []
         for item in test_loader:
-            image = item['image'].cuda()
-            txt = item['txtvector'].float().cuda()
-            f, g = model(image, txt)
+            image = item[0].cuda()
+            txt = item[1].float().cuda()
+            length = item[4]
+            label = item[2].long().cpu().numpy()
+            label2.extend(label)
+            f, g = model(image, txt, length)
             f_buffer.append(f)
             g_buffer.append(g)
         f_buffer = torch.cat(f_buffer, dim=0)
@@ -49,6 +57,7 @@ def generate_hashcode():
         np.save('train_hash_code', train_hashcode.cpu().numpy())
         np.save('test_img_hash', test_img_hash.cpu().numpy())
         np.save('test_txt_hash', test_txt_hash.cpu().numpy())
+        return np.array(label1),np.array(label2),train_hashcode.cpu(),test_img_hash.cpu(),test_txt_hash.cpu()
 
 def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     classes = np.max(tst_label) + 1
@@ -105,13 +114,13 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     print('Total query time:', time.time() - total_time_start)
 
 if __name__ == '__main__':
-    # generate_hashcode()
-    train_set = np.load('trainset.npy', allow_pickle=True).item()
-    train_label = train_set['labels']
-    test_set = np.load('testset.npy', allow_pickle=True).item()
-    test_label = test_set['labels']
-    train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
-    test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
-    test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
+    label1,label2,train_hashcode,test_img_hashcode,test_txt_hashcode = generate_hashcode()
+    # train_set = np.load('trainset.npy', allow_pickle=True).item()
+    # train_label = train_set['labels']
+    # test_set = np.load('testset.npy', allow_pickle=True).item()
+    # test_label = test_set['labels']
+    # train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
+    # test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
+    # test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
     # evaluate(train_hashcode, train_label, test_img_hashcode, test_label)
-    evaluate(test_img_hashcode, test_label, test_txt_hashcode, test_label)
+    evaluate(test_img_hashcode, label2, test_txt_hashcode, label2)

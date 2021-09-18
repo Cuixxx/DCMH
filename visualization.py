@@ -6,23 +6,25 @@ from main import DCMH
 import torch
 from data import *
 import os
+import torch.nn.functional as F
+
 def visualization(embeddings1,embeddings2, label):
     embeddings = np.vstack([embeddings1,embeddings2])
 
     tSNE = TSNE(n_components=2, learning_rate=100, perplexity=10)
     vectors = tSNE.fit_transform(embeddings)
 
-    plt.scatter(vectors[:8000, 0], vectors[:8000, 1], marker='o', c=label, cmap='tab20c')
-    plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='v', c=label, cmap='tab20c')
+    plt.scatter(vectors[:8000, 0], vectors[:8000, 1], marker='o', c=label)
+    plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='v', c=label)
     plt.axis('off')
     plt.colorbar()
     plt.show()
 
-    plt.scatter(vectors[:8000, 0], vectors[:8000, 1], marker='o', c=label, cmap='tab20c')
+    plt.scatter(vectors[:8000, 0], vectors[:8000, 1], marker='o', c=label)
     plt.axis('off')
     plt.colorbar()
     plt.show()
-    plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='o', c=label, cmap='tab20c')
+    plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='o', c=label)
     plt.colorbar()
     plt.axis('off')
     plt.show()
@@ -32,22 +34,25 @@ if __name__ == '__main__':
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.39912226, 0.40995254, 0.37104891], [0.21165691, 0.19001945, 0.18833912])])
-        train_set = RSICDset(train=True, transform=transform)
+        train_set = CrossModalDataset(train=True, transform=transform)
 
-        dataloader = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
-        model = DCMH(64)
+        dataloader = DataLoader(train_set, batch_size=100, shuffle=True, drop_last=True, num_workers=5,collate_fn=collate_fn)
+        model = DCMH(64,100)
         model = model.cuda()
-        model.load_state_dict(torch.load('./models/09-10-14:17_DCMH_IR/99.pth.tar'))
+        model.load_state_dict(torch.load('./models/09-18-15:17_DCMH_IR/159.pth.tar'))
 
         img_vectors, txt_vectors = [],[]
         labels = []
         model.eval()
         with torch.no_grad():
             for item in dataloader:
-                image = item['image'].cuda()
-                txt = item['txtvector'].float().cuda()
-                label = item['label'].long().cuda()
-                f, g = model(image, txt)
+                image = item[0].cuda()
+                txt = item[1].float().cuda()
+                label = item[2].long().cuda()
+                length = item[4]
+                f, g = model(image, txt,length)
+                f = F.normalize(f, p=2, dim=1)
+                g = F.normalize(g, p=2, dim=1)
                 img_vectors.append(f)
                 txt_vectors.append(g)
                 labels.append(label)

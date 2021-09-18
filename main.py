@@ -10,8 +10,9 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import math
 from ImgModule import ImgNet
-from TxtModule import TxtNet,TxtNet_GRU
+from TxtModule import TxtNet, TxtNet_GRU
 import torch.nn as nn
+
 
 class my_tensorboarx(object):
     def __init__(self, log_dir, file_name, start_fold_time=0):
@@ -52,9 +53,9 @@ class DCMH(nn.Module):
         # self.TxtNet = TxtNet(len)
         self.weight = np.load('EmbeddingWeight.npy')
         self.TxtNet = TxtNet_GRU(torch.from_numpy(self.weight),batch_szie=batch_szie,len=len)
-    def forward(self, img,txt):
+    def forward(self, img,txt,data_length):
         f = self.ImageNet(img)
-        g = self.TxtNet(txt)
+        g = self.TxtNet(txt,data_length)
         return f, g
 
 def Update_hash(dataloader):
@@ -63,12 +64,28 @@ def Update_hash(dataloader):
     G_buffer = []
     # with torch.no_grad():
     for item in dataloader:
-        image = item['image'].cuda()
-        txt = item['txtvector'].float().cuda()
-        f, g = model(image, txt)
+        image = item[0].cuda()
+        txt = item[1].float().cuda()
+        data_length = item[4]
+        sequence = item[5]
+        f, g = model(image, txt, data_length)
+
+        f = f.cpu().numpy()
+        g = g.cpu().numpy()
+
+        f_list = [0]*len(item[5])
+        g_list = [0] * len(item[5])
+        for i,item in enumerate(sequence):
+            f_list[item] = f[i, :]
+            g_list[item] = g[i, :]
+        f_list = np.concatenate(f_list, axis=0).reshape(-1, 64)
+        g_list = np.concatenate(g_list, axis=0).reshape(-1, 64)
+        f = torch.from_numpy(f_list)
+        g = torch.from_numpy(g_list)
         F_buffer.append(f)
         G_buffer.append(g)
-    F_buffer = torch.cat(F_buffer,dim=0)
+
+    F_buffer = torch.cat(F_buffer, dim=0)
     G_buffer = torch.cat(G_buffer, dim=0)
     B_buffer = torch.sign(F_buffer+G_buffer)
 
@@ -81,30 +98,31 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize([0.39912226, 0.40995254, 0.37104891], [0.21165691, 0.19001945, 0.18833912])])
 
-    train_set = RSICDset(train=True, transform=transform)
-    test_set = RSICDset(train=False, transform=transform)
+    train_set = CrossModalDataset(train=True, transform=transform)
+    test_set = CrossModalDataset(train=False, transform=transform)
 
     kf = KFold(n_splits=10, shuffle=True, random_state=11)
-    Epoch = 100
+    Epoch = 500
     hash_len = 64
     gamma = 2e-5
     eta = 2e-5
+    batch_size = 100
 
     # KFold validation
     for fold, (train_idx, val_idx) in enumerate(kf.split(train_set)):
-        model = DCMH(hash_len)
+        model = DCMH(hash_len, batch_size)
         model = model.cuda()
-        optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.99, weight_decay=1e-4)
+        optimizer = optim.SGD(model.parameters(), lr=2e-3, momentum=0.99, weight_decay=1e-4)
 
         now = time.strftime("%m-%d-%H:%M", time.localtime(time.time()))
         model_name = now + '_DCMH_IR'
         tensorboard = my_tensorboarx(log_dir='./tensorboard_data', file_name=model_name)
 
         Train_set, Val_set = Subset(train_set, train_idx), Subset(train_set, val_idx)
-        batch_size = 128
-        train_loader = DataLoader(Train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4)
-        hashloader = DataLoader(train_set, batch_size=100, shuffle=False, num_workers=5)
-        val_loader = DataLoader(Val_set, batch_size=batch_size, shuffle=False, drop_last=True, num_workers=4)
+
+        train_loader = DataLoader(Train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=5,collate_fn=collate_fn)
+        hashloader = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=5,collate_fn=collate_fn)
+        val_loader = DataLoader(Val_set, batch_size=batch_size, shuffle=False, drop_last=True, num_workers=5,collate_fn=collate_fn)
         fraction1, fraction2 = 1, 1
 
 
@@ -114,13 +132,15 @@ if __name__ == '__main__':
             model.train()
             with tqdm(total=math.ceil(len(train_loader)), desc="training") as pbar:
                 for item in train_loader:
-                    image = item['image'].cuda()
-                    txt = item['txtvector'].float().cuda()
-                    label = item['label'].long().cuda()
-                    hash_code = item['hash_code'].cuda()
-                    f, g = model(image, txt)
+                    image = item[0].cuda()
+                    txt = item[1].float().cuda()
+                    label = item[2].long().cuda()
+                    hash_code = item[3].cuda()
+                    data_length = item[4]
 
-                    if i<5:
+                    f, g = model(image, txt, data_length)
+
+                    if i < 10:
                         loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.2)
                         loss2, fraction2, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.2)
                         loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.2)[0] \
@@ -151,15 +171,15 @@ if __name__ == '__main__':
             with torch.no_grad():
                 with tqdm(total=math.ceil(len(val_loader)), desc="validating") as pbar:
                     for item in val_loader:
-                        image = item['image'].cuda()
-                        txt = item['txtvector'].float().cuda()
-                        label = item['label'].long().cuda()
-                        # hash_code = item['hash_code'].cuda()
-                        f, g = model(image, txt)
+                        image = item[0].cuda()
+                        txt = item[1].float().cuda()
+                        label = item[2].long().cuda()
+                        data_length = item[4]
+                        f, g = model(image, txt, data_length)
                         hf = torch.sign(f)
                         hg = torch.sign(g)
                         # if fraction1 > 0.65:
-                        if i < 5:
+                        if i < 10:
                             loss1, _, ap_dist2, an_dist2 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.2)
                             loss2, _, _, _ = cm_batch_all_triplet_loss(labels=label, anchor=g, another=f, margin=0.2)
                             loss_intra = batch_all_triplet_loss(labels=label, embedings=f, margin=0.2)[0] \
