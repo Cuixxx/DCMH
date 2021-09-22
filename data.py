@@ -132,13 +132,13 @@ def collate_fn(data):
     data.sort(key=lambda x: len(x[1]), reverse=True)
     data_length = [len(sq[1]) for sq in data]
     img = [i[0].unsqueeze(0) for i in data]
-    img = torch.cat(img,dim=0)
+    img = torch.cat(img, dim=0)
     x = [torch.tensor(i[1]) for i in data]
     label = [i[2] for i in data]
     hash_code = [i[3].unsqueeze(0) for i in data]
     hash_code = torch.cat(hash_code,dim=0)
 
-    txtvector = rnn.pad_sequence(x, batch_first=True,padding_value=0)
+    txtvector = rnn.pad_sequence(x, batch_first=True, padding_value=0)
     return img, txtvector, torch.tensor(label, dtype=torch.float32), hash_code, data_length, sequence
 
 if __name__ == '__main__':
@@ -153,6 +153,6 @@ if __name__ == '__main__':
         label = item[2]
         hash_code = item[3]
         data_length = item[4]
-        model(vector,data_length)
+        model(vector, data_length)
         print(data_length)
     # data_processing()

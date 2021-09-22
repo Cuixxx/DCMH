@@ -10,7 +10,7 @@ def generate_hashcode():
     batch_size =100
     model = DCMH(hash_len,batch_size)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-18-15:17_DCMH_IR/159.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
+    model.load_state_dict(torch.load('./models/09-22-20:18_DCMH_IR/219.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -122,5 +122,6 @@ if __name__ == '__main__':
     # train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
     # test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
     # test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
-    # evaluate(train_hashcode, train_label, test_img_hashcode, test_label)
+    # evaluate(train_hashcode, label1, test_img_hashcode, label2)
     evaluate(test_img_hashcode, label2, test_txt_hashcode, label2)
+    # evaluate(train_hashcode, label1, train_hashcode, label1)

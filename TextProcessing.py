@@ -51,7 +51,7 @@ def GenerateWeights(vocab,emb_dim):
 if __name__ == '__main__':
     # GenerateDicts()
     dictionary = np.load('dictionary.npy')
-    GenerateWeights(dictionary,emb_dim=300)
+    GenerateWeights(dictionary, emb_dim=300)
     # dicts = pickle.load(open('glove_data_6B_300d.pkl','rb'))
     # print(dicts)
 

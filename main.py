@@ -24,10 +24,6 @@ class my_tensorboarx(object):
     def draw(self, train_loss,ap_dist1,an_dist1,ap_dist2,an_dist2, val_loss,fraction1,fraction2,epoch):
         self.epoch = epoch
         self.writer.add_scalars(str(self.file_name), {
-            # 'train_acc': train_acc,
-            # 'train_prec': train_prec,
-            # 'train_rec': train_rec,
-            # 'train_f1': train_f1,
             'train_loss': train_loss,
             'ap_dist1':ap_dist1,
             'an_dist1': an_dist1,
@@ -36,10 +32,7 @@ class my_tensorboarx(object):
             'val_loss': val_loss,
             'frac1': fraction1,
             'frac2': fraction2
-            # 'val_acc': acc,
-            # 'val_acc_cls': acc_cls,
-            # 'val_MIOU': mean_iu,
-            # 'val_FWIOU': fwavacc,
+
         }, self.epoch)
 
 
@@ -52,10 +45,10 @@ class DCMH(nn.Module):
         self.ImageNet = ImgNet(len)
         # self.TxtNet = TxtNet(len)
         self.weight = np.load('EmbeddingWeight.npy')
-        self.TxtNet = TxtNet_GRU(torch.from_numpy(self.weight),batch_szie=batch_szie,len=len)
-    def forward(self, img,txt,data_length):
+        self.TxtNet = TxtNet_GRU(torch.from_numpy(self.weight), batch_szie=batch_szie, len=len)
+    def forward(self, img, txt, data_length):
         f = self.ImageNet(img)
-        g = self.TxtNet(txt,data_length)
+        g = self.TxtNet(txt, data_length)
         return f, g
 
 def Update_hash(dataloader):

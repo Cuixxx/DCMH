@@ -8,9 +8,8 @@ from data import *
 import os
 import torch.nn.functional as F
 
-def visualization(embeddings1,embeddings2, label):
-    embeddings = np.vstack([embeddings1,embeddings2])
-
+def visualization(embeddings1, embeddings2, label):
+    embeddings = np.vstack([embeddings1, embeddings2])
     tSNE = TSNE(n_components=2, learning_rate=100, perplexity=10)
     vectors = tSNE.fit_transform(embeddings)
 
@@ -24,6 +23,7 @@ def visualization(embeddings1,embeddings2, label):
     plt.axis('off')
     plt.colorbar()
     plt.show()
+
     plt.scatter(vectors[8000:, 0], vectors[8000:, 1], marker='o', c=label)
     plt.colorbar()
     plt.axis('off')
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         dataloader = DataLoader(train_set, batch_size=100, shuffle=True, drop_last=True, num_workers=5,collate_fn=collate_fn)
         model = DCMH(64,100)
         model = model.cuda()
-        model.load_state_dict(torch.load('./models/09-18-15:17_DCMH_IR/159.pth.tar'))
+        model.load_state_dict(torch.load('./models/09-22-20:18_DCMH_IR/219.pth.tar'))
 
         img_vectors, txt_vectors = [],[]
         labels = []
