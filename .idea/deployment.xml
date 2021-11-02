@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="cc@202.120.37.247:50038">
+  <component name="PublishConfigData" autoUpload="Always" serverName="cuican@202.120.37.247:11345">
     <serverData>
       <paths name="cc@192.168.1.156:22 password">
         <serverdata>
@@ -26,7 +26,7 @@
       <paths name="cuican@202.120.37.247:11345">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/DCMH/DCMH" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

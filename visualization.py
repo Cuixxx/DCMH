@@ -37,9 +37,9 @@ if __name__ == '__main__':
         train_set = CrossModalDataset(train=True, transform=transform)
 
         dataloader = DataLoader(train_set, batch_size=100, shuffle=True, drop_last=True, num_workers=5,collate_fn=collate_fn)
-        model = DCMH(64,100)
+        model = DCMH(64, 100)
         model = model.cuda()
-        model.load_state_dict(torch.load('./models/09-22-20:18_DCMH_IR/219.pth.tar'))
+        model.load_state_dict(torch.load('./models/09-23-15:20_DCMH_IR/119.pth.tar'))
 
         img_vectors, txt_vectors = [],[]
         labels = []
@@ -51,8 +51,8 @@ if __name__ == '__main__':
                 label = item[2].long().cuda()
                 length = item[4]
                 f, g = model(image, txt,length)
-                f = F.normalize(f, p=2, dim=1)
-                g = F.normalize(g, p=2, dim=1)
+                # f = F.normalize(f, p=2, dim=1)
+                # g = F.normalize(g, p=2, dim=1)
                 img_vectors.append(f)
                 txt_vectors.append(g)
                 labels.append(label)

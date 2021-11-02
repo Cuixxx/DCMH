@@ -1,5 +1,4 @@
-import json
-import re
+
 import numpy as np
 import os
 import random
@@ -10,55 +9,11 @@ import torch
 import torch.nn.utils.rnn as rnn
 import TxtModule
 
-def data_processing():
-    with open('/media/2T/cc/RSICD/dataset_rsicd.json') as f:
-        load_dict = json.load(f)
-        words_list = []
-        for item in load_dict['images']:
-            for sentences in item['sentences']:
-                tokens = sentences['raw']
-                tokens = re.sub(r'[(),.!]','',tokens).strip()
-                tokens = tokens.split(' ')
-                words_list += tokens
-        dict = list(set(words_list))
-        dict.remove('')
 
-        vectors = [[] for i in range(len(load_dict['images']))]
-        files = []
-
-        for i,item in enumerate(load_dict['images']):
-            files.append(item['filename'])
-            for sentences in item['sentences']:
-                vector = []
-                tokens = sentences['raw']
-                tokens = re.sub(r'[(),.!]','',tokens).strip()
-                tokens = tokens.split(' ')
-                for word in tokens:
-                    if word in dict:
-                        vector.append(dict.index(word))
-                vectors[i].append(vector)
-
-        labels = os.listdir('/media/2T/cc/txtclasses_rsicd')
-        label_list = [0]*len(files)
-
-        for index, label in enumerate(labels):
-            with open('/media/2T/cc/txtclasses_rsicd/{}'.format(label)) as f:
-                for line in f.readlines():
-                    line = line.strip('\n')
-                    label_list[files.index(line)]=index
-
-        files = np.array(files)
-        np.save('files.npy',files)
-        vectors = np.array(vectors)
-        np.save('txtvectors.npy',vectors)
-        dict = np.array(dict)
-        np.save('dictionary.npy',dict)
-        label_list = np.array(label_list)
-        np.save('label_list.npy',label_list)
         # print(load_dict)
 
 class RSICDset(Dataset):
-    def __init__(self,train=True,hash_len=64, transform=None):
+    def __init__(self, train=True, hash_len=64, transform=None):
         if train == True:
             self.list = np.load('trainset.npy', allow_pickle=True).item()
         else:
@@ -74,7 +29,8 @@ class RSICDset(Dataset):
 
     def __getitem__(self, index):
         file_name = self.image_list[index]
-        image = Image.open('/media/2T/cc/RSICD/RSICD_images/'+file_name)
+        # image = Image.open('/media/2T/cc/RSICD/RSICD_images/'+file_name)
+        image = Image.open('/media/2T/cuican/code/DCMH/DCMH/static/RSICD_images/' + file_name)
         if self.transform:
             image = self.transform(image)
 
@@ -92,7 +48,7 @@ class RSICDset(Dataset):
         self.B_buffer = buffer
 
 class CrossModalDataset(Dataset):
-    def __init__(self,train=True,hash_len=64, transform=None):
+    def __init__(self, train=True, hash_len=64, transform=None):
         if train == True:
             self.list = np.load('trainset.npy', allow_pickle=True).item()
         else:
@@ -108,12 +64,13 @@ class CrossModalDataset(Dataset):
 
     def __getitem__(self, index):
         file_name = self.image_list[index]
-        image = Image.open('/media/2T/cc/RSICD/RSICD_images/'+file_name)
+        # image = Image.open('/media/2T/cc/RSICD/RSICD_images/'+file_name)
+        image = Image.open('/media/2T/cuican/code/DCMH/DCMH/static/RSICD_images/' + file_name)
         if self.transform:
             image = self.transform(image)
 
         txtvector = self.txtvectors[index][random.randint(0, 4)]
-        while len(txtvector)<=0:
+        while len(txtvector) <= 0:
             txtvector = self.txtvectors[index][random.randint(0, 4)]
         label = self.label_list[index]
         hash_code = self.B_buffer[index]
@@ -136,7 +93,7 @@ def collate_fn(data):
     x = [torch.tensor(i[1]) for i in data]
     label = [i[2] for i in data]
     hash_code = [i[3].unsqueeze(0) for i in data]
-    hash_code = torch.cat(hash_code,dim=0)
+    hash_code = torch.cat(hash_code, dim=0)
 
     txtvector = rnn.pad_sequence(x, batch_first=True, padding_value=0)
     return img, txtvector, torch.tensor(label, dtype=torch.float32), hash_code, data_length, sequence

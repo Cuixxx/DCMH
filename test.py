@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 def generate_hashcode():
     hash_len = 64
     batch_size =100
-    model = DCMH(hash_len,batch_size)
+    model = DCMH(hash_len)
     model = model.cuda()
-    model.load_state_dict(torch.load('./models/09-22-20:18_DCMH_IR/219.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
+    model.load_state_dict(torch.load('./models/11-02-10:03_DCMH_IR/179.pth.tar'))#'./models/09-09-15:24_DCMH_IR/99.pth.tar'
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -31,9 +31,22 @@ def generate_hashcode():
             label = item[2].long().cpu().numpy()
             label1.extend(label)
             length = item[4]
-            f, g = model(image, txt,length)
+            sequence = item[5]
+            f, g = model(image, txt,length,batch_size, 'train')
+            f = f.cpu().numpy()
+            g = g.cpu().numpy()
+            f_list = [0] * len(sequence)
+            g_list = [0] * len(sequence)
+            for i, item in enumerate(sequence):
+                f_list[item] = f[i, :]
+                g_list[item] = g[i, :]
+            f_list = np.concatenate(f_list, axis=0).reshape(-1, 64)
+            g_list = np.concatenate(g_list, axis=0).reshape(-1, 64)
+            f = torch.from_numpy(f_list)
+            g = torch.from_numpy(g_list)
             f_buffer.append(f)
             g_buffer.append(g)
+
         f_buffer = torch.cat(f_buffer, dim=0)
         g_buffer = torch.cat(g_buffer, dim=0)
         train_hashcode = torch.sign(f_buffer + g_buffer)
@@ -45,9 +58,21 @@ def generate_hashcode():
             image = item[0].cuda()
             txt = item[1].float().cuda()
             length = item[4]
+            sequence = item[5]
             label = item[2].long().cpu().numpy()
             label2.extend(label)
-            f, g = model(image, txt, length)
+            f, g = model(image, txt, length,batch_size, 'train')
+            f = f.cpu().numpy()
+            g = g.cpu().numpy()
+            f_list = [0] * len(sequence)
+            g_list = [0] * len(sequence)
+            for i, item in enumerate(sequence):
+                f_list[item] = f[i, :]
+                g_list[item] = g[i, :]
+            f_list = np.concatenate(f_list, axis=0).reshape(-1, 64)
+            g_list = np.concatenate(g_list, axis=0).reshape(-1, 64)
+            f = torch.from_numpy(f_list)
+            g = torch.from_numpy(g_list)
             f_buffer.append(f)
             g_buffer.append(g)
         f_buffer = torch.cat(f_buffer, dim=0)
@@ -115,13 +140,14 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
 
 if __name__ == '__main__':
     label1,label2,train_hashcode,test_img_hashcode,test_txt_hashcode = generate_hashcode()
-    # train_set = np.load('trainset.npy', allow_pickle=True).item()
-    # train_label = train_set['labels']
-    # test_set = np.load('testset.npy', allow_pickle=True).item()
-    # test_label = test_set['labels']
-    # train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
-    # test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
-    # test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
+    train_set = np.load('trainset.npy', allow_pickle=True).item()
+    label1 = train_set['labels']
+    test_set = np.load('testset.npy', allow_pickle=True).item()
+    label2 = test_set['labels']
+    train_hashcode = np.load('train_hash_code.npy', allow_pickle=True)
+    test_img_hashcode = np.load('test_img_hash.npy', allow_pickle=True)
+    test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
+
     # evaluate(train_hashcode, label1, test_img_hashcode, label2)
     evaluate(test_img_hashcode, label2, test_txt_hashcode, label2)
     # evaluate(train_hashcode, label1, train_hashcode, label1)

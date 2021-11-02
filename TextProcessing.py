@@ -17,12 +17,11 @@ def GenerateDicts():
                 values = line.split()
                 words.append(values[0])
                 vector = np.asarray(values[1:], 'float32')
-                embeds = np.concatenate((embeds, vector.reshape(1,300)),axis=0)
+                embeds = np.concatenate((embeds, vector.reshape(1, 300)),axis=0)
             # pbar.set_postfix({'loss': '{0:1.5f}'.format(v_loss)})
                 pbar.update(1)
             pbar.close()
     w2idx_dict = dict(zip(words, range(len(words))))
-
     idx2w_dict = dict(zip(range(len(words)), words))
     assert embeds.shape[0] == len(words)
     glove_data ={'w2idx_dict':w2idx_dict, 'idx2w_dict':idx2w_dict, 'embed_matrix':embeds}
@@ -32,18 +31,21 @@ def GenerateDicts():
     # file.close()
 
 def GenerateWeights(vocab,emb_dim):
-    matrix_len = len(vocab)
-    weights = np.zeros([matrix_len,emb_dim])
+    # matrix_len = len(vocab)
+    # weights = np.zeros([matrix_len,emb_dim])
+    weights = np.random.normal(size=(1,emb_dim))# unk词向量随机初始化
     glove_data = pickle.load(open('glove_data_6B_300d.pkl', 'rb'))
     w2idx_dict = glove_data['w2idx_dict']
     embeddings = glove_data['embed_matrix']
     unk_count=0
-    for idx, word in enumerate(vocab):
+    for idx, word in enumerate(vocab[1:]):
         try:
-            weights[idx] = embeddings[w2idx_dict[word]]
+            weights = np.concatenate((weights, embeddings[w2idx_dict[word]].reshape(1, emb_dim)), axis=0)
+            # weights[idx] = embeddings[w2idx_dict[word]]
         except KeyError:
-            weights[idx] = np.random.normal(size=(emb_dim,))
-            unk_count += 1
+            weights = np.concatenate((weights, np.random.normal(size=(1, emb_dim))), axis=0)
+            # weights[idx] = np.random.normal(size=(emb_dim,))
+            unk_count += 1#glove字典中没有的词的个数
     print(unk_count)
     np.save('EmbeddingWeight.npy', weights)
     return weights

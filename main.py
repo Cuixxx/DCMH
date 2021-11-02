@@ -25,14 +25,13 @@ class my_tensorboarx(object):
         self.epoch = epoch
         self.writer.add_scalars(str(self.file_name), {
             'train_loss': train_loss,
-            'ap_dist1':ap_dist1,
+            'ap_dist1': ap_dist1,
             'an_dist1': an_dist1,
             'ap_dist2': ap_dist2,
             'an_dist2': an_dist2,
             'val_loss': val_loss,
             'frac1': fraction1,
             'frac2': fraction2
-
         }, self.epoch)
 
 
@@ -40,15 +39,16 @@ class my_tensorboarx(object):
         self.writer.close()
 
 class DCMH(nn.Module):
-    def __init__(self,len,batch_szie):
+    def __init__(self,len):
         super(DCMH, self).__init__()
         self.ImageNet = ImgNet(len)
         # self.TxtNet = TxtNet(len)
         self.weight = np.load('EmbeddingWeight.npy')
-        self.TxtNet = TxtNet_GRU(torch.from_numpy(self.weight), batch_szie=batch_szie, len=len)
-    def forward(self, img, txt, data_length):
+        self.TxtNet = TxtNet_GRU(torch.from_numpy(self.weight), len=len)
+    def forward(self, img, txt, data_length,batch_size,flag):
         f = self.ImageNet(img)
-        g = self.TxtNet(txt, data_length)
+        h0 = torch.randn((2 * 2, batch_size, 1024)).cuda()
+        g = self.TxtNet(txt, h0, data_length, flag)
         return f, g
 
 def Update_hash(dataloader):
@@ -61,7 +61,7 @@ def Update_hash(dataloader):
         txt = item[1].float().cuda()
         data_length = item[4]
         sequence = item[5]
-        f, g = model(image, txt, data_length)
+        f, g = model(image, txt, data_length, batch_size,'train')
 
         f = f.cpu().numpy()
         g = g.cpu().numpy()
@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     # KFold validation
     for fold, (train_idx, val_idx) in enumerate(kf.split(train_set)):
-        model = DCMH(hash_len, batch_size)
+        model = DCMH(hash_len)
         model = model.cuda()
         optimizer = optim.SGD(model.parameters(), lr=2e-3, momentum=0.99, weight_decay=1e-4)
 
@@ -131,7 +131,7 @@ if __name__ == '__main__':
                     hash_code = item[3].cuda()
                     data_length = item[4]
 
-                    f, g = model(image, txt, data_length)
+                    f, g = model(image, txt, data_length, batch_size, 'train')
 
                     if i < 10:
                         loss1, fraction1, ap_dist1, an_dist1 = cm_batch_all_triplet_loss(labels=label, anchor=f, another=g, margin=0.2)
@@ -168,7 +168,7 @@ if __name__ == '__main__':
                         txt = item[1].float().cuda()
                         label = item[2].long().cuda()
                         data_length = item[4]
-                        f, g = model(image, txt, data_length)
+                        f, g = model(image, txt, data_length, batch_size, 'train')
                         hf = torch.sign(f)
                         hg = torch.sign(g)
                         # if fraction1 > 0.65:
