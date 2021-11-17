@@ -96,6 +96,9 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     sum_tp = np.zeros(trainset_len)
     recall = np.zeros(trainset_len)
     total_time_start = time.time()
+    recall_1=np.zeros(query_times)
+    recall_5 = np.zeros(query_times)
+    recall_10 = np.zeros(query_times)
     with tqdm(total=query_times, desc="Query") as pbar:
         for i in range(query_times):
             query_label = tst_sample_label[i]
@@ -104,6 +107,9 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
             sort_indices = np.argsort(query_result)#np.argsort从小到大排序返回索引
             K_sort = sort_indices[0:K]#取前K个
             buffer_yes = np.equal(query_label, trn_label[sort_indices]).astype(int)
+            recall_1[i] = int(np.sum(buffer_yes[:1])>=1)
+            recall_5[i] = int(np.sum(buffer_yes[:5]) >= 1)
+            recall_10[i] = int(np.sum(buffer_yes[:10]) >= 1)
             x = np.stack((np.sort(query_result),buffer_yes),axis=0)
             n = np.sum(buffer_yes)#9400*3
             P = np.cumsum(buffer_yes) / Ns #累计求和返回数组
@@ -115,6 +121,9 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
             pbar.set_postfix({'Average Precision': '{0:1.5f}'.format(AP[i])})
             pbar.update(1)
     pbar.close()
+    recall_1 = np.sum(recall_1)/query_times
+    recall_5 = np.sum(recall_5) / query_times
+    recall_10 = np.sum(recall_10) / query_times
 
     precision_at_k = sum_tp / Ns / query_times
     recall = recall / query_times
@@ -137,9 +146,12 @@ def evaluate(trn_binary, trn_label, tst_binary, tst_label, K=10):
     map = np.mean(AP)
     print('mAP:', map)
     print('Total query time:', time.time() - total_time_start)
-
+    print('recall@1:', recall_1)
+    print('recall@5:', recall_5)
+    print('recall@10:', recall_10)
+    return recall,precision_at_k
 if __name__ == '__main__':
-    label1,label2,train_hashcode,test_img_hashcode,test_txt_hashcode = generate_hashcode()
+    # label1,label2,train_hashcode,test_img_hashcode,test_txt_hashcode = generate_hashcode()
     train_set = np.load('trainset.npy', allow_pickle=True).item()
     label1 = train_set['labels']
     test_set = np.load('testset.npy', allow_pickle=True).item()
@@ -149,5 +161,15 @@ if __name__ == '__main__':
     test_txt_hashcode = np.load('test_txt_hash.npy', allow_pickle=True)
 
     # evaluate(train_hashcode, label1, test_img_hashcode, label2)
-    evaluate(test_img_hashcode, label2, test_txt_hashcode, label2)
+    recall1, precision1=evaluate(test_img_hashcode, label2, test_txt_hashcode, label2)
+    recall2, precision2 = evaluate(test_txt_hashcode, label2, test_img_hashcode, label2)
+    plt.plot(recall1, precision1,label='txt-img')
+    plt.plot(recall2, precision2,label='img-txt')
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.xlabel('recall')
+    plt.ylabel('precision')
+    plt.title('PR-curve')
+    plt.legend()
+    plt.show()
     # evaluate(train_hashcode, label1, train_hashcode, label1)

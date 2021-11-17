@@ -20,6 +20,7 @@ def upload_file():
     else:
         return 'error'
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     path = './models/11-02-10:03_DCMH_IR/179.pth.tar'
     display = Display(path)
     app.run(host='0.0.0.0', port=5100, debug=True)

@@ -88,7 +88,7 @@ class Display():
         # sort_indices = np.argsort(query_result)  # np.argsort从小到大排序返回索引
         # buffer_yes = np.equal(self.label_list[1013], self.label_list[sort_indices]).astype(int)
         result = self.pathlist[np.argsort(query_result)]
-        result = ['/static/RSICD_images/'+item for item in result[0:2000]]
+        result = ['/static/RSICD_images/'+item for item in result[0:500]]
         result = dict(zip(range(len(result)),result))
         j_result = json.dumps(result)
         # print(hash_code)
